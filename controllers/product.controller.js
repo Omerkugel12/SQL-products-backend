@@ -1,9 +1,27 @@
 const db = require("../config/db.js");
 
 function getAllProducts(req, res) {
-  const sql = "SELECT * FROM products";
+  const { product_name, category, min_price, max_price } = req.query;
+  let sql = `select * from products`;
+  let conditions = [];
+  let params = [];
+
+  if (product_name) {
+    conditions.push(`product_name LIKE ?`);
+    params.push(`%${product_name}%`);
+  }
+
+  if (category) {
+    conditions.push(`category LIKE ?`);
+    params.push(`%${category}%`);
+  }
+
+  if (conditions.length > 0) {
+    sql += " WHERE " + conditions.join(" AND ");
+  }
+
   try {
-    db.query(sql, (err, result) => {
+    db.query(sql, params, (err, result) => {
       if (err) {
         console.log(err);
       }
