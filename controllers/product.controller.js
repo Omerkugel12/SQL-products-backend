@@ -1,37 +1,81 @@
 const db = require("../config/db.js");
+const { criteria } = require("../helpers/product.helper.js");
 
 function getAllProducts(req, res) {
-  const { product_name, category, min_price, max_price } = req.query;
-  let sql = `select * from products`;
-  let conditions = [];
-  let params = [];
-
-  if (product_name) {
-    conditions.push(`product_name LIKE ?`);
-    params.push(`%${product_name}%`);
-  }
-
-  if (category) {
-    conditions.push(`category LIKE ?`);
-    params.push(`%${category}%`);
-  }
-
-  if (conditions.length > 0) {
-    sql += " WHERE " + conditions.join(" AND ");
-  }
+  const { query } = req;
+  let sql = `select p.product_id, p.product_name, s.seller_name, product_price, p.category, product_description from products p
+  join sellers s
+  on s.seller_id = p.seller_id`;
+  //   let sql = "select * FROM products";
 
   try {
+    const { conditions, params } = criteria(query);
+
+    if (conditions.length > 0) {
+      sql += " WHERE " + conditions.join(" AND ");
+    }
     db.query(sql, params, (err, result) => {
       if (err) {
         console.log(err);
+        return res.status(500).json({ message: "Error retrieving products" });
       }
 
-      res.status(200).json(result);
+      res
+        .status(200)
+        .json(result.length === 0 ? { message: "no results" } : result);
     });
   } catch (error) {
     console.log(error);
   }
 }
+
+// function getAllProducts(req, res) {
+//   // Extract criteria from query parameters
+//   const { product_name, category, min_price, max_price } = req.query;
+
+//   // Base SQL query
+//   let sql = "SELECT * FROM products";
+//   let conditions = [];
+//   let params = [];
+
+//   // Add conditions based on criteria
+//   if (product_name) {
+//     conditions.push("product_name LIKE ?");
+//     params.push(`%${product_name}%`);
+//   }
+//   if (category) {
+//     conditions.push("category = ?");
+//     params.push(category);
+//   }
+//   if (min_price) {
+//     conditions.push("product_price >= ?");
+//     params.push(parseFloat(min_price));
+//   }
+//   if (max_price) {
+//     conditions.push("product_price <= ?");
+//     params.push(parseFloat(max_price));
+//   }
+
+//   // Combine conditions with the base query
+//   if (conditions.length > 0) {
+//     sql += " WHERE " + conditions.join(" AND ");
+//   }
+
+//   // Execute the query
+//   try {
+//     db.query(sql, params, (err, result) => {
+//       if (err) {
+//         console.error(err);
+//         return res.status(500).json({ message: "Internal Server Error" });
+//       }
+
+//       res.status(200).json(result);
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// }
 
 function getProductsCount(req, res) {
   const sql = "SELECT COUNT(*) as count FROM products";
